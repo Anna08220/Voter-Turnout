@@ -1,0 +1,111 @@
+<!--
+ Initial Q Prompt:
+ Please create anm interactive web map using data from this url link: https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Election_Results/FeatureServer
+ in this map, create a blue color coropleth map with 5 bins of the data analyzing voter turnout. 
+ Use the POPULATION and add all categories of votes (dem_2016, rep_2016, oth_2016) to calculate.
+ Create a popup per county that states the name of the county and the voter turnout percentage. 
+ In the popup also include the total popualtion and total votes.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>US Election Results by County</title>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.28/"></script>
+
+    <style>
+      html, body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      #viewDiv {
+        height: calc(100% - 50px);
+        width: 100%;
+      }
+      #title {
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
+        font-size: 20px;
+        font-weight: bold;
+        background: #fff;
+      }
+    </style>
+
+    <script>
+      require(["esri/config", "esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/widgets/Legend"], (
+        esriConfig,
+        Map,
+        MapView,
+        FeatureLayer,
+        Legend
+      ) => {
+        esriConfig.apiKey = "AAPTaQ8hBIilaAXay47iqFmhpJQ..Yrl79riOmWqApkpyl84fuFchTAOCPD451RdQ6jmkQKMab7Y5yT7T0bV329JhQ1v8K50WEZ7nDgsa5kM3Qz0GRsdSlh7GwmxDt7O-3E5vWkSF0A5cLYzXhvEBQOD8NimbNDAdIsmJMXRlrpbIqR5U7Q_E4IaGnkXWARsHF4rNKoIMx4VVt4mBxknKNFdJeXJKcyAh-DvbIU0h-mGYCALK678t6fFDYECdfmeSURk-l2XXMrPgimk7IxkvAT1_XapuGQzr";
+        const renderer = {
+          type: "class-breaks",
+          valueExpression: "(($feature.dem_2016 + $feature.rep_2016 + $feature.oth_2016) / $feature.POPULATION) * 100",
+          legendOptions: { title: "Voter Turnout (% of Population) 2016" },
+          defaultSymbol: { type: "simple-fill", color: "#d3d3d3", outline: { color: [255,255,255,0.5], width: "0.5px" } },
+          classBreakInfos: [
+            { minValue: 0,  maxValue: 20, label: "0–20%",  symbol: { type: "simple-fill", color: "#f7fbff", outline: { color: [255,255,255,0.5], width: "0.5px" } } },
+            { minValue: 20, maxValue: 35, label: "20–35%", symbol: { type: "simple-fill", color: "#9ecae1", outline: { color: [255,255,255,0.5], width: "0.5px" } } },
+            { minValue: 35, maxValue: 50, label: "35–50%", symbol: { type: "simple-fill", color: "#4292c6", outline: { color: [255,255,255,0.5], width: "0.5px" } } },
+            { minValue: 50, maxValue: 60, label: "50–60%", symbol: { type: "simple-fill", color: "#2171b5", outline: { color: [255,255,255,0.5], width: "0.5px" } } },
+            { minValue: 60, maxValue: 100, label: "60%+",  symbol: { type: "simple-fill", color: "#08306b", outline: { color: [255,255,255,0.5], width: "0.5px" } } }
+          ]
+        };
+
+        const povLayer = new FeatureLayer({
+          url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Election_results_county_areas/FeatureServer/0",
+          renderer: renderer,
+          title: "2016 Voter Turnout by County",
+          outFields: ["COUNTY", "STATE", "dem_2016", "rep_2016", "oth_2016", "POPULATION"],
+          popupTemplate: {
+            title: "{COUNTY} County, {STATE}",
+            content: "In {COUNTY} County, {STATE}, approximately {expression/turnout}% of the population cast a ballot in the 2016 presidential election. A total of {expression/totalvotes} votes were recorded out of a population of {POPULATION}.",
+            expressionInfos: [
+              {
+                name: "totalvotes",
+                expression: "$feature.dem_2016 + $feature.rep_2016 + $feature.oth_2016"
+              },
+              {
+                name: "turnout",
+                expression: "Round((($feature.dem_2016 + $feature.rep_2016 + $feature.oth_2016) / $feature.POPULATION) * 100, 1)"
+              }
+            ]
+          }
+        });
+
+        const map = new Map({
+          basemap: "arcgis/light-gray",
+          layers: [povLayer]
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [-96, 38],
+          zoom: 4
+        });
+
+        view.ui.add(
+          new Legend({
+            view: view
+          }),
+          "bottom-left"
+        );
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="title">2016 US Presidential Election — Voter Turnout by County</div>
+    <div id="viewDiv"></div>
+  </body>
+</html>
